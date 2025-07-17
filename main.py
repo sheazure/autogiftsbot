@@ -1,0 +1,25 @@
+import asyncio
+import aiosqlite
+from aiogram import Bot, Dispatcher
+from handlers.user import user_router
+
+bot = Bot(token='8161292063:AAHFKVjPOHicfsCUK3BHLlUo5TIHw48qppQ')
+dp = Dispatcher()
+
+
+async def create_database():
+    async with aiosqlite.connect("database.sqlite3") as db:
+        await db.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER, username TEXT, full_name TEXT, registration_date TEXT, own_referal TEXT, from_referal TEXT, balance INTEGER)")
+        await db.commit()
+
+
+async def main():
+
+    await create_database()
+    dp.include_routers(user_router)
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
