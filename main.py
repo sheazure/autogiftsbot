@@ -9,7 +9,19 @@ dp = Dispatcher()
 
 async def create_database():
     async with aiosqlite.connect("database.sqlite3") as db:
-        await db.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER, username TEXT, full_name TEXT, registration_date TEXT, own_referal TEXT, from_referal TEXT, balance INTEGER)")
+        await db.execute("""CREATE TABLE IF NOT EXISTS users (
+                         user_id INTEGER,
+                         username TEXT, 
+                         full_name TEXT, 
+                         registration_date TEXT, 
+                         own_referal TEXT, 
+                         from_referal TEXT, 
+                         balance INTEGER,
+                         stars_limit TEXT,
+                         supply_limit INTEGER,
+                         gifts_amount INTEGER,
+                         referal_amount INTEGER
+                         )""")
         await db.commit()
 
 

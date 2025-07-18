@@ -34,7 +34,7 @@ async def check_user(user_id, username, full_name, referal):
         cursor = await cursor.fetchone()
 
         if cursor == None: # Пользователя нет в базе данных
-            await db.execute("INSERT INTO USERS (user_id, username, full_name, registration_date, own_referal, from_referal, balance) VALUES (?, ?, ?, ?, ?, ?, ?)", (user_id, username, full_name, datetime.datetime.now().strftime(DATE_FORMAT), await generate_referal(), referal, 0))
+            await db.execute("INSERT INTO USERS (user_id, username, full_name, registration_date, own_referal, from_referal, balance, stars_limit, supply_limit, gifts_amount, referal_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (user_id, username, full_name, datetime.datetime.now().strftime(DATE_FORMAT), await generate_referal(), referal, 0, "10-10000", 1000000, 0, 0))
         else:
             await db.execute("UPDATE users SET username=?, full_name=? WHERE user_id=?", (username, full_name, user_id, ))
 
