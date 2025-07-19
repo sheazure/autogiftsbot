@@ -7,10 +7,10 @@ from zoneinfo import ZoneInfo
 from aiogram.methods.get_available_gifts import GetAvailableGifts
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
-
+from config import DB_PATH
 
 async def generate_referal():
-    async with aiosqlite.connect("database.sqlite3") as db:
+    async with aiosqlite.connect('database.sqlite3') as db:
         cursor = await db.execute("SELECT own_referal FROM users")
         cursor = await cursor.fetchall()
 
@@ -32,7 +32,7 @@ async def generate_referal():
 
 async def check_user(user_id, username, full_name, referal):
 
-    async with aiosqlite.connect("database.sqlite3") as db:
+    async with aiosqlite.connect('database.sqlite3') as db:
         
         cursor = await db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id, ))
         cursor = await cursor.fetchone()

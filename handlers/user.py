@@ -5,12 +5,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from utils import check_user
 import aiosqlite
-from config import DB_PATH
 import keyboards
 from config import PROVIDER_TOKEN
 from aiogram.methods.get_available_gifts import GetAvailableGifts
-
+import os
 user_router = Router()
+
+
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database.sqlite3")
 
 @user_router.message(CommandStart())
 async def start(message : types.Message):
