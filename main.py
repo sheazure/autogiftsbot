@@ -2,6 +2,7 @@ import asyncio
 import aiosqlite
 from aiogram import Bot, Dispatcher
 from handlers.user import user_router
+from utils import check_new_gifts
 
 bot = Bot(token='8161292063:AAHFKVjPOHicfsCUK3BHLlUo5TIHw48qppQ')
 dp = Dispatcher()
@@ -22,16 +23,25 @@ async def create_database():
                          gifts_amount INTEGER,
                          referal_amount INTEGER
                          )""")
+        
+        await db.execute("CREATE TABLE IF NOT EXISTS rare_gifts (" \
+        "id INTEGER PRIMARY KEY," \
+        "star_count INTEGER," \
+        "total_count INTEGER," \
+        "remaining_count INTEGER)")
+
+        await db.execute("CREATE TABLE IF NOT EXISTS payable_users (user_id INTEGER, balance INTEGER, stars_limit INTEGER, supply_limit INTEGER)")
         await db.commit()
 
 
 async def main():
-
+    asyncio.create_task(check_new_gifts(bot))
     await create_database()
     dp.include_routers(user_router)
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
+
     asyncio.run(main())
 

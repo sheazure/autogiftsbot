@@ -7,6 +7,8 @@ from utils import check_user
 import aiosqlite
 from config import DB_PATH
 import keyboards
+from config import PROVIDER_TOKEN
+from aiogram.methods.get_available_gifts import GetAvailableGifts
 
 user_router = Router()
 
@@ -28,7 +30,7 @@ async def referal(message : types.Message):
         own_referal = await db.execute("SELECT own_referal FROM users WHERE user_id=?", (message.from_user.id, ))
         own_referal = await own_referal.fetchone()
         own_referal = own_referal[0]
-    text = f"<b>Твоя реферальная ссылка</b>\n\n👉 https://t.me/giftshaunterbot/?start={own_referal}\n\nПоделись ею со своими друзьями и начни получать 5% от их депозита на свой счет 💸"
+    text = f"👥 <b>Твоя реферальная ссылка</b>\n\n👉 https://t.me/giftshaunterbot/?start={own_referal}\n\nПоделись ею со своими друзьями и начни получать 5% от их депозита на свой счет 💸"
 
     await message.answer(text, parse_mode="HTML")
 
@@ -42,7 +44,7 @@ async def menu(message : types.Message):
         info = await db.execute("SELECT * FROM users WHERE user_id=?", (message.from_user.id, ))
         info = await info.fetchone()
 
-    text = f"👩‍💼 <b>Главное меню</b> 👨‍💼\n\n<b>Ваш баланс: {info[6]}</b> ⭐️\n\n📊 <b>Статистика:</b>\nКоличество приглашенных пользователей: <b>{info[10]}</b> 👤\nКоличество купленных подарков: <b>{info[9]}</b> 🎁\n\n<b>Ваши лимиты:</b>\n⭐️ Звезды: от <b>{info[7].split('-')[0]}</b> до <b>{info[7].split('-')[1]}</b>\n🎁 Саплай: до <b>{info[8]}</b>\n\n<i>Если у вас есть вопросы, вы всегда можете обратиться в поддержку - /help</i>"
+    text = f"🏠 <b>Главное меню</b>\n\n<b>Ваш баланс: {info[6]}</b> ⭐️\n\n📊 <b>Статистика:</b>\nКоличество приглашенных пользователей: <b>{info[10]}</b> 👤\nКоличество купленных подарков: <b>{info[9]}</b> 🎁\n\n📈 <b>Ваши лимиты:</b>\n⭐️ Звезды: от <b>{info[7].split('-')[0]}</b> до <b>{info[7].split('-')[1]}</b>\n🎁 Саплай: до <b>{info[8]}</b>\n\n<i>Если у вас есть вопросы, вы всегда можете обратиться в поддержку - /help</i>"
 
     await message.answer(text, parse_mode="HTML", reply_markup=await keyboards.main_menu(message.from_user.id))
 
@@ -56,8 +58,12 @@ class Answer(StatesGroup):
     step = State()
 
 
+
+class Deposit(StatesGroup):
+    step = State()
+
 @user_router.callback_query()
-async def callback_query(callback : types.CallbackQuery, state : FSMContext):
+async def callback_query(callback : types.CallbackQuery, state : FSMContext, bot : Bot):
 
     await callback.answer("")
 
@@ -79,6 +85,21 @@ async def callback_query(callback : types.CallbackQuery, state : FSMContext):
         await state.update_data(to_edit=to_edit.message_id)
         await state.update_data(to_edit2=callback.message.message_id)
         await state.update_data(previous_text=callback.message.text)
+
+    if callback.data == "referal_link":
+        async with aiosqlite.connect(DB_PATH) as db:
+            own_referal = await db.execute("SELECT own_referal FROM users WHERE user_id=?", (callback.from_user.id, ))
+            own_referal = await own_referal.fetchone()
+            own_referal = own_referal[0]
+        text = f"👥 <b>Твоя реферальная ссылка</b>\n\n👉 https://t.me/giftshaunterbot/?start={own_referal}\n\nПоделись ею со своими друзьями и начни получать 5% от их депозита на свой счет 💸"
+
+        await callback.message.answer(text, parse_mode="HTML")
+
+    if callback.data == "deposit":
+        to_edit = await callback.message.answer("Введите количество звёзд, которое вы хотите отправить боту.", reply_markup=keyboards.cancel)
+        await state.update_data(to_edit=to_edit.message_id)
+        await state.set_state(Deposit.step)
+
 
 class ChangeStarLimits(StatesGroup):
     step1 = State()
@@ -104,7 +125,6 @@ async def change_limits1(message : types.Message, state : FSMContext, bot : Bot)
         await state.clear()
         
 
-
 @user_router.message(ChangeStarLimits.step1)
 async def change_star_limits1(message : types.Message, state : FSMContext, bot : Bot):
 
@@ -121,6 +141,7 @@ async def change_star_limits1(message : types.Message, state : FSMContext, bot :
     to_edit = await message.answer("🔼 Введите верхний порог для цены подарков.", reply_markup=keyboards.cancel)
     await state.set_state(ChangeStarLimits.step2)
     await state.update_data(to_edit = to_edit.message_id)
+
 
 @user_router.message(ChangeStarLimits.step2)
 async def change_star_limits2(message : types.Message, state : FSMContext, bot : Bot):
@@ -146,7 +167,6 @@ async def change_star_limits2(message : types.Message, state : FSMContext, bot :
 
     await message.answer("Ваши лимиты успешно обновлены!\n\nГлавное меню - /menu")
     await state.clear()
-
 
 
 @user_router.message(ChangeSupplyLimits.step1)
@@ -198,6 +218,7 @@ async def help2(message : types.Message, state : FSMContext, bot : Bot):
 
 @user_router.message(Answer.step)
 async def answer(message : types.Message, state : FSMContext, bot : Bot):
+
     text = message.text
     temp = await state.get_data()
     to_edit = temp["to_edit"]
@@ -214,3 +235,84 @@ async def answer(message : types.Message, state : FSMContext, bot : Bot):
     await bot.edit_message_text(chat_id=message.chat.id, message_id=to_edit2, text=previous_text+f"\n\n✅ <b>Ваш ответ:</b> <i>{message.text}</i>", parse_mode="HTML")
     await message.delete()
     await bot.delete_message(chat_id=message.chat.id, message_id=to_edit)
+
+
+
+
+@user_router.message(F.text, Deposit.step)
+async def deposit(message : types.Message, state : FSMContext, bot : Bot):
+    data = await state.get_data()
+    to_edit = data["to_edit"]
+
+    try:
+        await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=to_edit, reply_markup=None)
+    except:
+        pass
+
+    if not message.text.isdigit():
+        to_edit = await message.answer("❌ Количество звёзд должно быть числом!", reply_markup=keyboards.cancel)
+        await state.update_data(to_edit=to_edit.message_id)
+        return
+    
+    amount = int(message.text)
+
+    await bot.send_invoice(chat_id=message.chat.id,
+                           title="Депозит",
+                           description=f"Пополнение баланса на {message.text} звёзд",
+                           currency="XTR",
+                           prices=[types.LabeledPrice(label=f"{message.text} звёзд", amount=amount)],
+                           payload=f"deposit:{message.from_user.id}:{amount}"
+                           )
+    
+
+    
+
+@user_router.pre_checkout_query()
+async def pre_checkout_query(pre_checkout_q : types.PreCheckoutQuery, bot : Bot):
+    await bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
+
+@user_router.message(F.successful_payment)
+async def successful_payment(message : types.Message, bot : Bot):
+    payment_info = message.successful_payment
+
+    amount = int(payment_info.invoice_payload.split(':')[2])
+    user_id = int(payment_info.invoice_payload.split(":")[1])
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        referal = await db.execute("SELECT from_referal FROM users WHERE user_id=?", (message.from_user.id, ))
+        referal = await referal.fetchone()
+        referal = referal[0]
+
+        if referal == None: # Реферала нет
+            referal_user_id = None
+        else: # Реферал есть
+            referal_user_id = await db.execute("SELECT user_id FROM users WHERE own_referal=?", (referal, ))
+            referal_user_id = await referal_user_id.fetchone()
+            referal_user_id = referal_user_id[0]
+
+
+        await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (int(amount * 0.9), message.from_user.id, ))
+        
+        for_admins = int(amount * 0.10)
+
+        if referal_user_id != None:
+            for_admins = int(amount * 0.05)
+            balance = await db.execute("SELECT balance FROM users WHERE user_id=?", (referal_user_id, ))
+            balance = await balance.fetchone()
+            balance = balance[0]
+
+
+            await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (int(amount * 0.05), referal_user_id, ))
+            await bot.send_message(referal_user_id, f"Один из ваших друзей воспользовался вашей реферальной ссылкой и вы получили % от его депозита.\n\nВаш баланс: <strike>{balance}</strike> {balance + int(amount * 0.05)}", parse_mode="HTML")
+
+        await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (for_admins, 1404205394, ))
+
+        await db.commit()
+
+
+
+
+@user_router.message(Command("gift"))
+async def gift(message : types.Message, bot : Bot):
+
+    await bot.send_gift(user_id=message.from_user.id, gift_id="5170233102089322756", text="From sheazure")
