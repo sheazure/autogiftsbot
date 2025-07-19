@@ -111,3 +111,6 @@ async def buy_rare_gifts(rare_gifts : list, bot : Bot):
 
                 if bought_gifts == 0: # Не куплено ни одного подарка
                     rare_gifts.remove(gift)
+
+        if len(rare_gifts) == 0:
+            break
