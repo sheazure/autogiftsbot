@@ -103,7 +103,7 @@ async def callback_query(callback : types.CallbackQuery, state : FSMContext, bot
         await callback.message.answer(text, parse_mode="HTML")
 
     if callback.data == "deposit":
-        to_edit = await callback.message.answer("Введите количество звёзд, которое вы хотите отправить боту.", reply_markup=keyboards.cancel)
+        to_edit = await callback.message.answer("⭐️ Введите количество звёзд, которое вы хотите отправить боту.", reply_markup=keyboards.cancel)
         await state.update_data(to_edit=to_edit.message_id)
         await state.set_state(Deposit.step)
 
@@ -119,7 +119,7 @@ async def callback_query(callback : types.CallbackQuery, state : FSMContext, bot
         async with aiosqlite.connect('database.sqlite3') as db:
             await db.execute("UPDATE users SET connected_channel=NULL WHERE user_id=?", (callback.message.chat.id, ))
             await db.commit()
-        await callback.message.answer("Вы успешно отключили Телеграм канал!")
+        await callback.message.answer("🗣 Вы успешно отключили Телеграм канал!")
 
         await back_to_main_menu(callback.message.chat.id, callback.message.message_id, bot)
 
@@ -129,14 +129,14 @@ async def callback_query(callback : types.CallbackQuery, state : FSMContext, bot
 
 
     if callback.data == "change_stars_limit":
-        to_edit = await callback.message.edit_text("Введите лимит на цену подарков в формате 10-10000.\n<i>Пример - 100-2000</i>", parse_mode="HTML")
+        to_edit = await callback.message.edit_text("⭐️ Введите лимит на цену подарков в формате <b>10-10000</b>.\n<i>Пример - <b>100-2000</b></i>", parse_mode="HTML")
         await callback.message.edit_reply_markup(reply_markup=keyboards.back_to_main_menu)
 
         await state.update_data(to_edit=to_edit.message_id)
         await state.set_state(ChangeStarsLimit.step)
 
     if callback.data == "change_supply_limit":
-        to_edit = await callback.message.edit_text("Введите лимит на саплай Телеграм подарков.\n<i>Лимит должен быть числом)</i>", parse_mode="HTML")
+        to_edit = await callback.message.edit_text("🎁 Введите лимит на саплай Телеграм подарков.\n<i>Лимит должен быть числом)</i>", parse_mode="HTML")
         await callback.message.edit_reply_markup(reply_markup=keyboards.back_to_main_menu)
 
         await state.update_data(to_edit=to_edit.message_id)
@@ -149,7 +149,7 @@ class Help(StatesGroup):
 @user_router.message(Command("help"))
 async def help(message : types.Message, state : FSMContext):
 
-    to_edit = await message.answer("Здесь вы можете написать свое <b>обращение</b> нашим модераторам.\n\n<i>Ожидание ответа может составлять до 12 часов.</i>", parse_mode="HTML", reply_markup=keyboards.cancel)
+    to_edit = await message.answer("💬 Здесь вы можете написать свое <b>обращение</b> нашим модераторам.\n\n<i>Ожидание ответа может составлять до 12 часов.</i>", parse_mode="HTML", reply_markup=keyboards.cancel)
     await state.set_state(Help.step)
     await state.update_data(to_edit=to_edit.message_id)
 
@@ -162,7 +162,7 @@ async def help2(message : types.Message, state : FSMContext, bot : Bot):
 
     await bot.send_message(chat_id=1404205394, text=f"Новое обращение от {message.from_user.full_name} (@{message.from_user.username})\n\n{message.text}", reply_markup=await keyboards.answer(message.from_user.id, message.message_id))
     
-    await message.reply("Ваше сообщение было отправлено модераторам, ожидайте ответа!")
+    await message.reply("📩 Ваше сообщение было отправлено модераторам, ожидайте ответа!")
 
 
 
@@ -178,7 +178,7 @@ async def answer(message : types.Message, state : FSMContext, bot : Bot):
     previous_text = temp["previous_text"]
 
 
-    text = "<b>Вам пришел ответ от модерации!</b>\n\n" + text
+    text = "📩 <b>Вам пришел ответ от модерации!</b>\n\n" + text
 
     await bot.send_message(chat_id=chat_id, text=text, reply_to_message_id=message_id, parse_mode="HTML")
 
@@ -277,7 +277,7 @@ async def connect_channel(message : types.Message, state : FSMContext, bot : Bot
         await db.commit()
 
     
-    await message.answer("Вы успешно подключили свой телеграм канал!")
+    await message.answer("🗣 Вы успешно подключили свой телеграм канал!")
 
     await back_to_main_menu(message.chat.id, message_id=to_edit, bot=bot)
     await state.clear()
@@ -296,7 +296,7 @@ async def change_stars_limit(message : types.Message, state : FSMContext, bot : 
         await db.execute("UPDATE users SET stars_limit=? WHERE user_id=?", (message.text, message.from_user.id, ))
         await db.commit()
     
-    await message.answer("Вы успешно обновили лимиты на цены подарков!")
+    await message.answer("📈 Вы успешно обновили лимиты на цены подарков!")
 
     data = await state.get_data()
     to_edit = data["to_edit"]
@@ -317,7 +317,7 @@ async def change_supply_limit(message : types.Message, state : FSMContext, bot :
         await db.execute("UPDATE users SET supply_limit=? WHERE user_id=?", (int(message.text), message.from_user.id, ))
         await db.commit()
 
-    await message.answer("Вы успешно обновили лимит на саплай подарков!")
+    await message.answer("🎁 Вы успешно обновили лимит на саплай подарков!")
 
     data = await state.get_data()
     to_edit = data["to_edit"]
