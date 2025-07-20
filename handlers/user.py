@@ -292,19 +292,20 @@ async def successful_payment(message : types.Message, bot : Bot):
             referal_user_id = await referal_user_id.fetchone()
             referal_user_id = referal_user_id[0]
 
-
+        for_user = math.ceil(amount * 0.9)
+        
         await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (int(amount * 0.9), message.from_user.id, ))
         
-        for_admins = int(amount * 0.10)
+        for_admins = amount - for_user
 
         if referal_user_id != None:
-            for_admins = int(amount * 0.05)
+            for_admins = (amount - for_user) // 2
             balance = await db.execute("SELECT balance FROM users WHERE user_id=?", (referal_user_id, ))
             balance = await balance.fetchone()
             balance = balance[0]
 
 
-            await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (int(amount * 0.05), referal_user_id, ))
+            await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (amount - for_user - for_admins), referal_user_id, ))
             await bot.send_message(referal_user_id, f"Один из ваших друзей воспользовался вашей реферальной ссылкой и вы получили % от его депозита.\n\nВаш баланс: <strike>{balance}</strike> {balance + int(amount * 0.05)}", parse_mode="HTML")
 
         await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (for_admins, 1404205394, ))
