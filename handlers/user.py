@@ -33,7 +33,7 @@ async def referal(message : types.Message):
         own_referal = await db.execute("SELECT own_referal FROM users WHERE user_id=?", (message.from_user.id, ))
         own_referal = await own_referal.fetchone()
         own_referal = own_referal[0]
-    text = f"👥 <b>Твоя реферальная ссылка</b>\n\n👉 https://t.me/giftshaunterbot/?start={own_referal}\n\nПоделись ею со своими друзьями и начни получать 5% от их депозита на свой счет 💸"
+    text = f"👥 <b>Твоя реферальная ссылка</b>\n\n👉 https://t.me/giftshaunterbot/?start={own_referal}\n\nПоделись ей со своими друзьями и начни получать 5% от их депозита на свой счет 💸"
 
     await message.answer(text, parse_mode="HTML")
 
@@ -125,6 +125,7 @@ async def change_limits1(message : types.Message, state : FSMContext, bot : Bot)
         to_edit = await message.answer("📊 Введи порог для саплая подарков.", reply_markup=keyboards.cancel)
         await state.update_data(to_edit=to_edit.message_id)
     else:
+        await menu(message)
         await state.clear()
         
 
@@ -202,7 +203,7 @@ class Help(StatesGroup):
 @user_router.message(Command("help"))
 async def help(message : types.Message, state : FSMContext):
 
-    to_edit = await message.answer("Здесь вы можете написать свое <b>обращение</b> нашим модераторам.\n\n<i>Время ответа может колебаться от 1 минуты до 1 часа.</i>", parse_mode="HTML", reply_markup=keyboards.cancel)
+    to_edit = await message.answer("Здесь вы можете написать свое <b>обращение</b> нашим модераторам.\n\n<i>Ожидание ответа может составлять до 12 часов.</i>", parse_mode="HTML", reply_markup=keyboards.cancel)
     await state.set_state(Help.step)
     await state.update_data(to_edit=to_edit.message_id)
 
@@ -259,11 +260,12 @@ async def deposit(message : types.Message, state : FSMContext, bot : Bot):
     
     amount = int(message.text)
 
+    await message.answer(f"Комиссия данного платежа составит <b>10% ({int(amount * 0.1)}</b> ⭐️)\n\n<i>5% - вашему рефералу, 5% - на тех.обслуживание бота.</i>", parse_mode="HTML")
     await bot.send_invoice(chat_id=message.chat.id,
                            title="Депозит",
-                           description=f"Пополнение баланса на {message.text} звёзд",
+                           description=f"Пополнение баланса на {message.text} звёзд.",
                            currency="XTR",
-                           prices=[types.LabeledPrice(label=f"{message.text} звёзд", amount=amount)],
+                           prices=[types.LabeledPrice(label=f"{message.text} ⭐️", amount=amount)],
                            payload=f"deposit:{message.from_user.id}:{amount}"
                            )
     
@@ -296,6 +298,7 @@ async def successful_payment(message : types.Message, bot : Bot):
         for_user = math.ceil(amount * 0.9)
         
         await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (for_user, message.from_user.id, ))
+        await bot.send_message(user_id, f"Вы успешно пополнили баланс на <b>{for_user}</b> ⭐️! Ваша комиссия составила 10%.\n\n/menu - Главное меню", parse_mode="HTML")
         
         for_admins = amount - for_user
 

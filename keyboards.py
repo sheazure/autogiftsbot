@@ -12,7 +12,7 @@ async def main_menu(user_id):
     return keyboard.adjust(2).as_markup(resize_keyboard=True)
 
 
-limits = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="⭐️ Звёзды"), KeyboardButton(text="📊 Саплай")]], resize_keyboard=True)
+limits = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="⭐️ Звёзды"), KeyboardButton(text="📊 Саплай")], [KeyboardButton(text="↩️ Назад")]], resize_keyboard=True)
 
 cancel = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✖️ Отменить", callback_data="cancel")]])
 
