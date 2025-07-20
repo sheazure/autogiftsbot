@@ -3,7 +3,7 @@ from aiogram import types
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from utils import check_user
+from utils import check_user, back_to_main_menu
 import aiosqlite
 import keyboards
 from config import PROVIDER_TOKEN
@@ -47,7 +47,7 @@ async def menu(message : types.Message):
         info = await db.execute("SELECT * FROM users WHERE user_id=?", (message.from_user.id, ))
         info = await info.fetchone()
 
-    text = f"🏠 <b>Главное меню</b>\n\n<b>Ваш баланс: {info[6]}</b> ⭐️\n\n📊 <b>Статистика:</b>\nКоличество приглашенных пользователей: <b>{info[10]}</b> 👤\nКоличество купленных подарков: <b>{info[9]}</b> 🎁\n\n📈 <b>Ваши лимиты:</b>\n⭐️ Звезды: от <b>{info[7].split('-')[0]}</b> до <b>{info[7].split('-')[1]}</b>\n🎁 Саплай: до <b>{info[8]}</b>\n\n<i>Если у вас есть вопросы, вы всегда можете обратиться в поддержку - /help</i>"
+    text = f"🏠 <b>Главное меню</b>\n\n<b>Ваш баланс: {info[6]}</b> ⭐️\n\n📊 <b>Статистика:</b>\nКоличество приглашенных пользователей: <b>{info[10]}</b> 👤\nКоличество купленных подарков: <b>{info[9]}</b> 🎁\n\n📈 <b>Ваши лимиты:</b>\n⭐️ Звезды: от <b>{info[7].split('-')[0]}</b> до <b>{info[7].split('-')[1]}</b>\n🎁 Саплай: до <b>{info[8]}</b>\n\n🗣 <b>Подключенный канал:</b> {(info[11] if info[11] != None else "Нет")}\n\n<i>Если у вас есть вопросы, вы всегда можете обратиться в поддержку - /help</i>"
 
     await message.answer(text, parse_mode="HTML", reply_markup=await keyboards.main_menu(message.from_user.id))
 
@@ -56,13 +56,19 @@ async def menu(message : types.Message):
 class ChangeLimits(StatesGroup):
     step1 = State()
 
-
 class Answer(StatesGroup):
     step = State()
 
-
-
 class Deposit(StatesGroup):
+    step = State()
+
+class ConnectChannel(StatesGroup):
+    step = State()
+
+class ChangeStarsLimit(StatesGroup):
+    step = State()
+
+class ChangeSupplyLimit(StatesGroup):
     step = State()
 
 @user_router.callback_query()
@@ -75,9 +81,7 @@ async def callback_query(callback : types.CallbackQuery, state : FSMContext, bot
         await state.clear()
 
     if callback.data == "change_limits":
-        await callback.message.answer("Какие лимиты вы хотите изменить?", reply_markup=keyboards.limits)
-        await state.update_data(to_del_keyboard=callback.message)
-        await state.set_state(ChangeLimits.step1)
+        await callback.message.edit_text(text="Какие лимиты вы хотите изменить?", reply_markup=keyboards.limits)
 
 
     if callback.data.split(":")[0] == "answer":
@@ -104,97 +108,39 @@ async def callback_query(callback : types.CallbackQuery, state : FSMContext, bot
         await state.set_state(Deposit.step)
 
 
-class ChangeStarLimits(StatesGroup):
-    step1 = State()
-    step2 = State()
 
-class ChangeSupplyLimits(StatesGroup):
-    step1 = State()
-
-
-@user_router.message(ChangeLimits.step1)
-async def change_limits1(message : types.Message, state : FSMContext, bot : Bot):
-    temp = await message.answer(".", reply_markup=types.ReplyKeyboardRemove())
-    await bot.delete_message(chat_id=message.chat.id, message_id=temp.message_id)
-    if message.text == "⭐️ Звёзды":
-        await state.set_state(ChangeStarLimits.step1)
-        to_edit = await message.answer("🔽 Введите нижний порог для цены подарков.", reply_markup=keyboards.cancel)
+    if callback.data == "connect_channel":
+        to_edit = await bot.edit_message_text(chat_id=callback.message.chat.id, message_id=callback.message.message_id, text="Чтобы подключить телеграм канал, отправьте его юзернейм в формате @durov\n\n<i>*Подарки будут отправляться в телеграм канал</i>", parse_mode="HTML", reply_markup=keyboards.back_to_main_menu)
+        await state.set_state(ConnectChannel.step)
         await state.update_data(to_edit=to_edit.message_id)
-    elif message.text == "📊 Саплай":
-        await state.set_state(ChangeSupplyLimits.step1)
-        to_edit = await message.answer("📊 Введи порог для саплая подарков.", reply_markup=keyboards.cancel)
-        await state.update_data(to_edit=to_edit.message_id)
-    else:
-        await menu(message)
-        await state.clear()
+
+    if callback.data == "disconnect_channel":
         
+        async with aiosqlite.connect('database.sqlite3') as db:
+            await db.execute("UPDATE users SET connected_channel=NULL WHERE user_id=?", (callback.message.chat.id, ))
+            await db.commit()
+        await callback.message.answer("Вы успешно отключили Телеграм канал!")
 
-@user_router.message(ChangeStarLimits.step1)
-async def change_star_limits1(message : types.Message, state : FSMContext, bot : Bot):
+        await back_to_main_menu(callback.message.chat.id, callback.message.message_id, bot)
 
-    to_edit = await state.get_data()
-    to_edit = to_edit["to_edit"]
-    await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=to_edit, reply_markup=None)
-    if message.text.isdigit():
-        await state.update_data(down=message.text)
-    else:
-        to_edit = await message.answer("❌ Лимит должен быть числом!", reply_markup="cancel")
+    if callback.data == "back_to_main_menu":
+        await state.clear()
+        await back_to_main_menu(callback.message.chat.id, callback.message.message_id, bot)
+
+
+    if callback.data == "change_stars_limit":
+        to_edit = await callback.message.edit_text("Введите лимит на цену подарков в формате 10-10000.\n<i>Пример - 100-2000</i>", parse_mode="HTML")
+        await callback.message.edit_reply_markup(reply_markup=keyboards.back_to_main_menu)
+
         await state.update_data(to_edit=to_edit.message_id)
-        return
-    
-    to_edit = await message.answer("🔼 Введите верхний порог для цены подарков.", reply_markup=keyboards.cancel)
-    await state.set_state(ChangeStarLimits.step2)
-    await state.update_data(to_edit = to_edit.message_id)
+        await state.set_state(ChangeStarsLimit.step)
 
+    if callback.data == "change_supply_limit":
+        to_edit = await callback.message.edit_text("Введите лимит на саплай Телеграм подарков.\n<i>Лимит должен быть числом)</i>", parse_mode="HTML")
+        await callback.message.edit_reply_markup(reply_markup=keyboards.back_to_main_menu)
 
-@user_router.message(ChangeStarLimits.step2)
-async def change_star_limits2(message : types.Message, state : FSMContext, bot : Bot):
-
-    to_edit = await state.get_data()
-    to_edit = to_edit["to_edit"]
-
-    await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=to_edit, reply_markup=None)
- 
-    if not message.text.isdigit():
-        to_edit = await message.answer("❌ Лимит должен быть числом!", reply_markup=keyboards.cancel)
         await state.update_data(to_edit=to_edit.message_id)
-        return
-    
-    data = await state.get_data()
-
-    down = data["down"]
-    up = message.text
-
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE users SET stars_limit=? WHERE user_id=?", (f"{down}-{up}", message.from_user.id, ))
-        await db.commit()
-
-    await message.answer("Ваши лимиты успешно обновлены!\n\nГлавное меню - /menu")
-    await state.clear()
-
-
-@user_router.message(ChangeSupplyLimits.step1)
-async def change_supply_limits(message : types.Message, state : FSMContext, bot : Bot):
-
-    to_edit = await state.get_data()
-    to_edit = to_edit["to_edit"]
-
-    await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=to_edit, reply_markup=None)
-
-
-    if not message.text.isdigit():
-        to_edit = await message.answer("❌ Лимит должен быть числом!", reply_markup="cancel")
-        await state.update_data(to_edit=to_edit.message_id)
-        return
-    
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE users SET supply_limit=? WHERE user_id=?", (int(message.text), message.from_user.id, ))
-        await db.commit()
-
-    await message.answer("Вы успешно обновили лимит саплая на подарки.\n\nГлавное меню - /menu")
-    await state.clear()
-
-
+        await state.set_state(ChangeSupplyLimit.step)
 
 class Help(StatesGroup):
     step = State()
@@ -319,7 +265,62 @@ async def successful_payment(message : types.Message, bot : Bot):
 
 
 
-@user_router.message(Command("gift"))
-async def gift(message : types.Message, bot : Bot):
+@user_router.message(ConnectChannel.step)
+async def connect_channel(message : types.Message, state : FSMContext, bot : Bot):
 
-    await bot.send_gift(user_id=message.from_user.id, gift_id="5170233102089322756", text="From sheazure")
+    data = await state.get_data()
+
+    to_edit = data["to_edit"]
+
+    async with aiosqlite.connect('database.sqlite3') as db:
+        await db.execute("UPDATE users SET connected_channel=? WHERE user_id=?", (message.text, message.from_user.id, ))
+        await db.commit()
+
+    
+    await message.answer("Вы успешно подключили свой телеграм канал!")
+
+    await back_to_main_menu(message.chat.id, message_id=to_edit, bot=bot)
+    await state.clear()
+
+
+
+@user_router.message(ChangeStarsLimit.step)
+async def change_stars_limit(message : types.Message, state : FSMContext, bot : Bot):
+
+    # Неверный формат
+    if not message.text.split("-")[0].isdigit() or not message.text.split("-")[1].isdigit() or "-" not in message.text:
+        await message.delete()
+        return
+    
+    async with aiosqlite.connect('database.sqlite3') as db:
+        await db.execute("UPDATE users SET stars_limit=? WHERE user_id=?", (message.text, message.from_user.id, ))
+        await db.commit()
+    
+    await message.answer("Вы успешно обновили лимиты на цены подарков!")
+
+    data = await state.get_data()
+    to_edit = data["to_edit"]
+
+    await back_to_main_menu(chat_id=message.chat.id, message_id=to_edit, bot=bot)
+    await state.clear()
+
+
+@user_router.message(ChangeSupplyLimit.step)
+async def change_supply_limit(message : types.Message, state : FSMContext, bot : Bot):
+
+    # Неверный формат
+    if not message.text.isdigit():
+        await message.delete()
+        return
+    
+    async with aiosqlite.connect("database.sqlite3") as db:
+        await db.execute("UPDATE users SET supply_limit=? WHERE user_id=?", (int(message.text), message.from_user.id, ))
+        await db.commit()
+
+    await message.answer("Вы успешно обновили лимит на саплай подарков!")
+
+    data = await state.get_data()
+    to_edit = data["to_edit"]
+
+    await back_to_main_menu(chat_id=message.chat.id, message_id=to_edit, bot=bot)
+    await state.clear()
