@@ -104,6 +104,7 @@ async def buy_rare_gifts(rare_gifts : list, bot : Bot):
                             await bot.send_gift(gift_id=gift["id"], user_id=user[0])
                         except TelegramAPIError as e:
                             print(f"Ошибка покупки {e}")
+                            await bot.send_message(1404205394, f"Ошибка покупки {e}")
                             pass
                         else:
                             bought_gifts += 1
