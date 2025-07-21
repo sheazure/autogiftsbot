@@ -103,7 +103,10 @@ async def buy_rare_gifts(rare_gifts : list, bot : Bot):
                     if balance >= gift["star_count"] and down_stars_limit <= gift["star_count"] <= up_stars_limit and gift["total_count"] <= supply_limit:
                         try:
                             if user[11] != None:
-                                await bot.send_gift(gift_id=gift["id"], chat_id=user[11], text="Приобретено с помощью Gifts Haunter")
+                                try:
+                                    await bot.send_gift(gift_id=gift["id"], chat_id=user[11], text="Приобретено с помощью Gifts Haunter")
+                                except:
+                                    await bot.send_gift(gift_id=gift["id"], chat_id=user[0], text="Приобретено с помощью Gifts Haunter")
                             else:
                                 await bot.send_gift(gift_id=gift["id"], user_id=user[0], text="Приобретено с помощью Gifts Haunter")
                         except TelegramAPIError as e:
@@ -112,7 +115,7 @@ async def buy_rare_gifts(rare_gifts : list, bot : Bot):
                             pass
                         else:
                             bought_gifts += 1
-                            await db.execute("UPDATE users SET balance=balance-? gifts_amount=gifts_amount+1 WHERE user_id=?", (gift["star_count"], user[0]))
+                            await db.execute("UPDATE users SET balance=balance-?, gifts_amount=gifts_amount+1 WHERE user_id=?", (gift["star_count"], user[0]))
 
                 if bought_gifts == 0: # Не куплено ни одного подарка
                     rare_gifts.remove(gift)
