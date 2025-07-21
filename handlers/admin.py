@@ -34,9 +34,12 @@ async def add_admin(message : types.Message, bot : Bot):
     if len(message.text.split()) == 1:
         await message.answer("/add_admin @username")
         return
+    elif message.text.split()[1][0] != "@":
+        await message.answer("/add_admin @username")
+        return
     
     async with aiosqlite.connect('database.sqlite3') as db:
-        info = await db.execute("SELECT user_id, full_name FROM users WHERE username=?", (message.text.split()[1], ))
+        info = await db.execute("SELECT user_id, full_name FROM users WHERE username=?", (message.text.split()[1][1:], ))
         info = await info.fetchone()
 
         if info == None:
@@ -45,7 +48,7 @@ async def add_admin(message : types.Message, bot : Bot):
         user_id = info[0]
         full_name = info[1]
 
-        await db.execute("INSERT INTO admins (user_id, username, full_name) VALUES (?, ?, ?)", (user_id, message.text.split()[1], full_name, ))
+        await db.execute("INSERT INTO admins (user_id, username, full_name) VALUES (?, ?, ?)", (user_id, message.text.split()[1][1:], full_name, ))
         await db.commit()
 
         await message.answer(f"Вы успешно добавили нового админа {full_name} ({message.text.split()[1]})")
