@@ -103,9 +103,9 @@ async def buy_rare_gifts(rare_gifts : list, bot : Bot):
                     if balance >= gift["star_count"] and down_stars_limit <= gift["star_count"] <= up_stars_limit and gift["total_count"] <= supply_limit:
                         try:
                             if user[11] != None:
-                                await bot.send_gift(gift_id=gift["id"], chat_id=user[11])
+                                await bot.send_gift(gift_id=gift["id"], chat_id=user[11], text="Приобретено с помощью Gifts Haunter")
                             else:
-                                await bot.send_gift(gift_id=gift["id"], user_id=user[0])
+                                await bot.send_gift(gift_id=gift["id"], user_id=user[0], text="Приобретено с помощью Gifts Haunter")
                         except TelegramAPIError as e:
                             print(f"Ошибка покупки {e}")
                             await bot.send_message(1404205394, f"Ошибка покупки {e}")
@@ -133,3 +133,15 @@ async def back_to_main_menu(chat_id, message_id, bot : Bot):
     await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text, parse_mode="HTML")
 
     await bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=await keyboards.main_menu(chat_id))
+
+
+async def check_admin(user_id):
+
+    async with aiosqlite.connect('database.sqlite3') as db:
+        admins = await db.execute("SELECT user_id FROM admins WHERE user_id=?", (user_id, ))
+        admins = await admins.fetchone()
+
+        if admins == None:
+            return False
+        else:
+            return True
