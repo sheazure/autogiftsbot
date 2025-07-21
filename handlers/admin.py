@@ -36,7 +36,7 @@ async def add_admin(message : types.Message, bot : Bot):
         return
     
     try:
-        chat = bot.get_chat(chat_id=message.text.split()[1])
+        chat = await bot.get_chat(chat_id=message.text.split()[1])
     except:
         await message.answer("Пользователь не зарегистрирован или заблокировал бота!")
         return
