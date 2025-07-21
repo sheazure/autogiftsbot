@@ -11,7 +11,7 @@ admin_router = Router()
 @admin_router.message(Command("show_users"))
 async def show_users(message : types.Message):
 
-    if not check_admin(message.from_user.id):
+    if not await check_admin(message.from_user.id):
         return
     
     async with aiosqlite.connect('database.sqlite3') as db:
