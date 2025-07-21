@@ -22,7 +22,8 @@ async def create_database():
                          stars_limit TEXT,
                          supply_limit INTEGER,
                          gifts_amount INTEGER,
-                         referal_amount INTEGER
+                         referal_amount INTEGER,
+                         connected_channel TEXT
                          )""")
         
         await db.execute("""CREATE TABLE IF NOT EXISTS admins (
