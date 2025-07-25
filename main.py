@@ -4,6 +4,7 @@ from aiogram import Bot, Dispatcher
 from handlers.user import user_router
 from handlers.admin import admin_router
 from utils import check_new_gifts
+from middlewares.error_handler import setup_error_handler
 
 bot = Bot(token='8161292063:AAHFKVjPOHicfsCUK3BHLlUo5TIHw48qppQ')
 dp = Dispatcher()
@@ -32,6 +33,9 @@ async def create_database():
                          full_name)""")
         
         await db.commit()
+
+
+setup_error_handler(dp, bot)
 
 
 async def main():

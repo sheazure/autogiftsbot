@@ -55,7 +55,9 @@ async def check_new_gifts(bot : Bot):
         try:
             gifts = await bot(GetAvailableGifts())
         except:
-            await bot.send_message(1404205394, "ОШИБКА ПОЛУЧЕНИЯ НОВЫХ ПОДАРКОВ!!!")
+            for i in range(5): 
+                await bot.send_message(1404205394, "ОШИБКА ПОЛУЧЕНИЯ НОВЫХ ПОДАРКОВ!!!")
+                await asyncio.sleep(3)
 
         gifts_list = []
         for gift in gifts:
@@ -77,7 +79,9 @@ async def check_new_gifts(bot : Bot):
         
         if len(rare_gifts) != 0:
             print(f"NEW GIFTS, AMOUNT: {len(rare_gifts)}")
-            await bot.send_message(1404205394, "НОВЫЕ ПОДАРКИ!!!")
+            for i in range(5):
+                await bot.send_message(1404205394, "НОВЫЕ ПОДАРКИ!!!")
+                await asyncio.sleep(3)
             await buy_rare_gifts(rare_gifts, bot)
         else:
             print("No gifts...")
