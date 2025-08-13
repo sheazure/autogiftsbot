@@ -6,8 +6,6 @@ from aiogram.fsm.state import State, StatesGroup
 from utils import check_user, back_to_main_menu
 import aiosqlite
 import keyboards
-from config import PROVIDER_TOKEN
-from aiogram.methods.get_available_gifts import GetAvailableGifts
 import os
 import math
 user_router = Router()

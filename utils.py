@@ -9,6 +9,7 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 from config import DB_PATH
 import keyboards
+from logger import logger
 
 async def generate_referal():
     async with aiosqlite.connect('database.sqlite3') as db:
@@ -32,7 +33,7 @@ async def generate_referal():
 
 
 async def check_user(user_id, username, full_name, referal):
-
+    logger.info("Check user")
     async with aiosqlite.connect('database.sqlite3') as db:
         
         cursor = await db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id, ))
@@ -50,6 +51,7 @@ async def check_user(user_id, username, full_name, referal):
 
 
 async def check_new_gifts(bot : Bot):
+    
     while True:
         print(f"Checking new gifts {datetime.datetime.now().strftime(DATE_FORMAT)}")
         try:
@@ -68,7 +70,6 @@ async def check_new_gifts(bot : Bot):
                         continue
                     d[it[0]] = it[1]
                 gifts_list.append(d)
-
         rare_gifts = []
 
         for gift in gifts_list:
@@ -79,9 +80,9 @@ async def check_new_gifts(bot : Bot):
         
         if len(rare_gifts) != 0:
             print(f"NEW GIFTS, AMOUNT: {len(rare_gifts)}")
-            for i in range(5):
+            logger.info("NEW GIFTS!!!")
+            for i in range(10):
                 await bot.send_message(1404205394, "НОВЫЕ ПОДАРКИ!!!")
-                await asyncio.sleep(3)
             await buy_rare_gifts(rare_gifts, bot)
         else:
             print("No gifts...")
@@ -100,8 +101,8 @@ async def buy_rare_gifts(rare_gifts : list, bot : Bot):
                 bought_gifts = 0
                 for user in users:
                     balance = user[6]
-                    down_stars_limit = user[7].split("-")[0]
-                    up_stars_limit = user[7].split('-')[1]
+                    down_stars_limit = int(user[7].split("-")[0])
+                    up_stars_limit = int(user[7].split('-')[1])
                     supply_limit = user[8]
 
                     if balance >= gift["star_count"] and down_stars_limit <= gift["star_count"] <= up_stars_limit and gift["total_count"] <= supply_limit:
@@ -113,7 +114,8 @@ async def buy_rare_gifts(rare_gifts : list, bot : Bot):
                                     await bot.send_gift(gift_id=gift["id"], chat_id=user[0], text="Приобретено с помощью Gifts Haunter")
                             else:
                                 await bot.send_gift(gift_id=gift["id"], user_id=user[0], text="Приобретено с помощью Gifts Haunter")
-                        except TelegramAPIError as e:
+                        except Exception as e:
+                            logger.exception(f"{e}")
                             print(f"Ошибка покупки {e}")
                             await bot.send_message(1404205394, f"Ошибка покупки {e}")
                             pass
