@@ -16,11 +16,13 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database.sqlite3")
 
 @user_router.message(CommandStart())
 async def start(message : types.Message):
-    logger.info(f"/start from {message.from_user.full_name} (@{message.from_user.username})")
+    
     if len(message.text.split()) == 1: # Рефа нет
         referal = None
     else:
         referal = message.text.split()[1]
+
+    logger.info(f"/start from {message.from_user.full_name} (@{message.from_user.username}). Referal - {referal}")
 
     await check_user(message.from_user.id, message.from_user.username, message.from_user.full_name, referal)
     await menu(message)
@@ -41,6 +43,7 @@ async def referal(message : types.Message):
 
 @user_router.message(Command("menu"))
 async def menu(message : types.Message):
+    await check_user(message.from_user.id, message.from_user.username, message.from_user.full_name, None)
     logger.info(f"/menu from {message.from_user.full_name} (@{message.from_user.username})")
     async with aiosqlite.connect(DB_PATH) as db:
 
@@ -94,6 +97,7 @@ async def callback_query(callback : types.CallbackQuery, state : FSMContext, bot
         await state.update_data(previous_text=callback.message.text)
 
     if callback.data == "referal_link":
+        logger.info(f"/referal from {callback.from_user.full_name} (@{callback.from_user.username})")
         async with aiosqlite.connect(DB_PATH) as db:
             own_referal = await db.execute("SELECT own_referal FROM users WHERE user_id=?", (callback.from_user.id, ))
             own_referal = await own_referal.fetchone()
@@ -273,13 +277,16 @@ async def connect_channel(message : types.Message, state : FSMContext, bot : Bot
     data = await state.get_data()
 
     to_edit = data["to_edit"]
+    
+    channel = (message.text if message.text[0] == "@" else "@"+message.text)
 
     async with aiosqlite.connect('database.sqlite3') as db:
-        await db.execute("UPDATE users SET connected_channel=? WHERE user_id=?", (message.text, message.from_user.id, ))
+        await db.execute("UPDATE users SET connected_channel=? WHERE user_id=?", (channel, message.from_user.id, ))
         await db.commit()
-
+    
     
     await message.answer("🗣 Вы успешно подключили свой телеграм канал!")
+    logger.info(f"{message.from_user.full_name} (@{message.from_user.username}) подключил канал {channel}")
 
     await back_to_main_menu(message.chat.id, message_id=to_edit, bot=bot)
     await state.clear()
