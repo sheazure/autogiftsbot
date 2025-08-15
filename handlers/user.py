@@ -8,6 +8,7 @@ import aiosqlite
 import keyboards
 import os
 import math
+from logger import logger
 user_router = Router()
 
 
@@ -15,6 +16,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database.sqlite3")
 
 @user_router.message(CommandStart())
 async def start(message : types.Message):
+    logger.info(f"/start from {message.from_user.full_name} (@{message.from_user.username})")
     if len(message.text.split()) == 1: # Рефа нет
         referal = None
     else:
@@ -26,7 +28,7 @@ async def start(message : types.Message):
 
 @user_router.message(Command("referal"))
 async def referal(message : types.Message):
-
+    logger.info(f"/referal from {message.from_user.full_name} (@{message.from_user.username})")
     async with aiosqlite.connect(DB_PATH) as db:
         own_referal = await db.execute("SELECT own_referal FROM users WHERE user_id=?", (message.from_user.id, ))
         own_referal = await own_referal.fetchone()
@@ -39,7 +41,7 @@ async def referal(message : types.Message):
 
 @user_router.message(Command("menu"))
 async def menu(message : types.Message):
-    
+    logger.info(f"/menu from {message.from_user.full_name} (@{message.from_user.username})")
     async with aiosqlite.connect(DB_PATH) as db:
 
         info = await db.execute("SELECT * FROM users WHERE user_id=?", (message.from_user.id, ))
@@ -223,9 +225,11 @@ async def pre_checkout_query(pre_checkout_q : types.PreCheckoutQuery, bot : Bot)
 @user_router.message(F.successful_payment)
 async def successful_payment(message : types.Message, bot : Bot):
     payment_info = message.successful_payment
-
+    
     amount = int(payment_info.invoice_payload.split(':')[2])
     user_id = int(payment_info.invoice_payload.split(":")[1])
+
+    logger.info(f"SUCCESSFUL PAYMENT FROM {message.from_user.full_name} (@{message.from_user.username}). AMOUNT: {amount}")
 
     async with aiosqlite.connect(DB_PATH) as db:
         referal = await db.execute("SELECT from_referal FROM users WHERE user_id=?", (message.from_user.id, ))

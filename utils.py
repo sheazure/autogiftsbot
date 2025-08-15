@@ -33,7 +33,6 @@ async def generate_referal():
 
 
 async def check_user(user_id, username, full_name, referal):
-    logger.info("Check user")
     async with aiosqlite.connect('database.sqlite3') as db:
         
         cursor = await db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id, ))
@@ -81,7 +80,7 @@ async def check_new_gifts(bot : Bot):
         if len(rare_gifts) != 0:
             print(f"NEW GIFTS, AMOUNT: {len(rare_gifts)}")
             logger.info("NEW GIFTS!!!")
-            for i in range(10):
+            for i in range(3):
                 await bot.send_message(1404205394, "НОВЫЕ ПОДАРКИ!!!")
             await buy_rare_gifts(rare_gifts, bot)
         else:
@@ -91,7 +90,7 @@ async def check_new_gifts(bot : Bot):
 
 
 async def buy_rare_gifts(rare_gifts : list, bot : Bot):
-
+    await bot.send_message(1404205394, "НОВЫЕ ПОДАРКИ!!!")
 
     while True:
         async with aiosqlite.connect('database.sqlite3') as db:
