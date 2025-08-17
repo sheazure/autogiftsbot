@@ -52,12 +52,11 @@ async def check_user(user_id, username, full_name, referal):
 async def check_new_gifts(bot : Bot):
     
     while True:
-        min_amount = 9999999
+
         print(f"Checking new gifts {datetime.datetime.now().strftime(DATE_FORMAT)}")
         try:
             gifts = await bot(GetAvailableGifts())
         except Exception as e:
-            await bot.send_message(1404205394, f"Error while retrieving the list of gifts - {e}")
             logger.error(f"Error while retrieving the list of gifts - {e}")
             await asyncio.sleep(3)
 
@@ -75,14 +74,13 @@ async def check_new_gifts(bot : Bot):
         for gift in gifts_list:
             if gift["total_count"] != None: # Лимитированный подарок
                 rare_gifts.append(gift)
-                min_amount = min(min_amount, gift["star_count"])
 
         rare_gifts = sorted(rare_gifts, key=lambda x:x["total_count"])
         
         if len(rare_gifts) != 0:
             logger.info(f"NEW GIFTS, AMOUNT: {len(rare_gifts)}")
             await bot.send_message(1404205394, f"NEW GIFTS, AMOUNT: {len(rare_gifts)}")
-            await buy_rare_gifts(rare_gifts, min_amount, bot)
+            await buy_rare_gifts(rare_gifts, bot)
         else:
             print("No gifts...")
 
@@ -90,45 +88,47 @@ async def check_new_gifts(bot : Bot):
 
 
 
-async def buy_rare_gifts(rare_gifts : list, min_amount : int, bot : Bot):
+async def buy_rare_gifts(rare_gifts : list, bot : Bot):
 
     async with aiosqlite.connect("database.sqlite3") as db:
         while rare_gifts:
             to_remove = []
-            bought_gifts = 0
             for gift in rare_gifts:
-                cursor = await db.execute("SELECT * FROM users WHERE balance>?", (min_amount, ))
-                users = await cursor.fetchall()
+                while True:
+                    bought_gifts = 0
+                    cursor = await db.execute("SELECT * FROM users WHERE balance>?", (gift["star_count"], ))
+                    users = await cursor.fetchall()
 
-                for user in users:
-                    id = user[0]
-                    balance = user[6]
-                    stars_limit_down = int(user[7].split("-")[0])
-                    stars_limit_up = int(user[7].split("-")[1])
-                    supply_limit = user[8]
-                    connected_channel = user[11]
+                    for user in users:
+                        id = user[0]
+                        balance = user[6]
+                        stars_limit_down = int(user[7].split("-")[0])
+                        stars_limit_up = int(user[7].split("-")[1])
+                        supply_limit = user[8]
+                        connected_channel = user[11]
 
-                    if balance >= gift["star_count"] and stars_limit_down <= gift["star_count"] <= stars_limit_up and gift["total_count"] <= supply_limit:
+                        if balance >= gift["star_count"] and stars_limit_down <= gift["star_count"] <= stars_limit_up and gift["total_count"] <= supply_limit:
 
-                        try:
-                            if connected_channel != None: # Дарим в канал
-                                await bot.send_gift(gift_id=gift["id"], chat_id=connected_channel, text="Приобретено с помощью Gifts Haunter")
-                            else:
-                                await bot.send_gift(gift_id=gift["id"], chat_id=id, text="Приобретено с помощью Gifts Haunter")
-                        except Exception as e:
-                            logger.error(f"Ошибка при покупке подарка пользователю {user[2]} (@{user[1]}) - {e}")
+                            try:
+                                if connected_channel != None: # Дарим в канал
+                                    await bot.send_gift(gift_id=gift["id"], chat_id=connected_channel, text="Приобретено с помощью Gifts Haunter")
+                                else:
+                                    await bot.send_gift(gift_id=gift["id"], chat_id=id, text="Приобретено с помощью Gifts Haunter")
+                            except Exception as e:
+                                logger.error(f"Ошибка при покупке подарка пользователю {user[2]} (@{user[1]}) - {e}")
 
-                        else: # Успешная покупка
-                            await db.execute("UPDATE users SET balance=balance-?, gifts_amount=gifts_amount+1 WHERE user_id=?", (gift["star_count"], id))
-                            logger.info(f"Успешная покупка подарка пользователю {user[2]} (@{user[1]}) Цена: {gift["star_count"]}")
-                            bought_gifts += 1
-                            await db.commit()
+                            else: # Успешная покупка
+                                await db.execute("UPDATE users SET balance=balance-?, gifts_amount=gifts_amount+1 WHERE user_id=?", (gift["star_count"], id))
+                                logger.info(f"Успешная покупка подарка пользователю {user[2]} (@{user[1]}) Цена: {gift["star_count"]}")
+                                bought_gifts += 1
+                                await db.commit()
+
+                    if bought_gifts == 0: # Не куплено ни одного подарка, либо нет денег, либо распродан
+                        to_remove.append(gift)
+                        break
             
-            if bought_gifts == 0: # Не купилось ни одного подарка, либо денег нет ни у кого, либо закончились
-                to_remove.append(gift)
-
-        for gift in to_remove:
-            rare_gifts.remove(gift)  
+            for gift in to_remove:
+                rare_gifts.remove(gift)  
 
 
 
