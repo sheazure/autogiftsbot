@@ -251,7 +251,7 @@ async def successful_payment(message : types.Message, bot : Bot):
         
         await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (for_user, message.from_user.id, ))
         await bot.send_message(user_id, f"Вы успешно пополнили баланс на <b>{for_user}</b> ⭐️! Ваша комиссия составила 5%.\n\n/menu - Главное меню", parse_mode="HTML")
-        
+        await db.commit()
         for_admins = amount - for_user
 
         if referal_user_id != None:
@@ -263,6 +263,8 @@ async def successful_payment(message : types.Message, bot : Bot):
 
             await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (amount - for_user - for_admins, referal_user_id, ) )
             await bot.send_message(referal_user_id, f"Один из ваших друзей воспользовался вашей реферальной ссылкой и вы получили % от его депозита.\n\nВаш баланс: <strike>{balance}</strike> {balance + int(amount * 0.05)} ⭐️", parse_mode="HTML")
+            await db.commit()
+
 
         await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (for_admins, 8007723805, ))
 
