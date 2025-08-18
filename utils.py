@@ -101,6 +101,8 @@ async def buy_rare_gifts(rare_gifts : list, bot : Bot):
 
                     for user in users:
                         id = user[0]
+                        if id == 8007723805: # Запас звёзд
+                            continue
                         balance = user[6]
                         stars_limit_down = int(user[7].split("-")[0])
                         stars_limit_up = int(user[7].split("-")[1])
