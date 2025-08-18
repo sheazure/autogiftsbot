@@ -124,7 +124,7 @@ async def callback_query(callback : types.CallbackQuery, state : FSMContext, bot
             await db.execute("UPDATE users SET connected_channel=NULL WHERE user_id=?", (callback.message.chat.id, ))
             await db.commit()
         await callback.message.answer("🗣 Вы успешно отключили Телеграм канал!")
-
+        logger.info(f"{callback.from_user.full_name} (@{callback.from_user.username}) отключил(а) канал")
         await back_to_main_menu(callback.message.chat.id, callback.message.message_id, bot)
 
     if callback.data == "back_to_main_menu":

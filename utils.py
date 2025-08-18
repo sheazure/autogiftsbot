@@ -65,8 +65,8 @@ async def check_new_gifts(bot : Bot):
             for item in gift[1]:
                 d = {}
                 for it in item:
-                    #if it[0] == "sticker":
-                        #continue
+                    if it[0] == "sticker":
+                        continue
                     d[it[0]] = it[1]
                 gifts_list.append(d)
         rare_gifts = []
