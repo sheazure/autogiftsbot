@@ -210,7 +210,6 @@ async def deposit(message : types.Message, state : FSMContext, bot : Bot):
     
     amount = int(message.text)
 
-    await message.answer(f"Комиссия данного платежа составит <b>10% ({int(amount * 0.1)}</b> ⭐️)\n\n<i>5% - вашему рефералу, 5% - на тех.обслуживание бота.</i>", parse_mode="HTML")
     await bot.send_invoice(chat_id=message.chat.id,
                            title="Депозит",
                            description=f"Пополнение баланса на {message.text} звёзд.",
@@ -247,15 +246,15 @@ async def successful_payment(message : types.Message, bot : Bot):
             referal_user_id = await referal_user_id.fetchone()
             referal_user_id = referal_user_id[0]
 
-        for_user = math.ceil(amount * 0.9)
+        for_user = math.ceil(amount * 0.95)
         
         await db.execute("UPDATE users SET balance=balance+? WHERE user_id=?", (for_user, message.from_user.id, ))
-        await bot.send_message(user_id, f"Вы успешно пополнили баланс на <b>{for_user}</b> ⭐️! Ваша комиссия составила 10%.\n\n/menu - Главное меню", parse_mode="HTML")
+        await bot.send_message(user_id, f"Вы успешно пополнили баланс на <b>{for_user}</b> ⭐️! Ваша комиссия составила 5%.\n\n/menu - Главное меню", parse_mode="HTML")
         
         for_admins = amount - for_user
 
         if referal_user_id != None:
-            for_admins = (amount - for_user) // 2
+            for_admins = 0
             balance = await db.execute("SELECT balance FROM users WHERE user_id=?", (referal_user_id, ))
             balance = await balance.fetchone()
             balance = balance[0]
